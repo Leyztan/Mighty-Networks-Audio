@@ -28,9 +28,8 @@
        Player Card
     ────────────────────────────────────────────────────────────────────── */
     .player-card {
-      background-color: #8e44ad;           /* Purple background */
+      background-color: #a74c99;           /* Purple (#a74c99) background */
       border-radius: 8px;
-      overflow: hidden;
       display: flex;
       flex-direction: row;
       max-width: 900px;
@@ -40,13 +39,22 @@
     }
 
     /* ──────────────────────────────────────────────────────────────────────
-       Cover Art on Left
+       Cover Art on Left (inset with padding)
     ────────────────────────────────────────────────────────────────────── */
+    .cover-container {
+      flex: 0 0 auto;
+      padding: 16px;                        /* 16px padding around the thumbnail */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .cover-art {
-      flex: 0 0 160px;                      /* Fixed width for album art */
+      width: 160px;
       height: 160px;
       background-size: cover;
       background-position: center center;
+      border-radius: 4px;
+      background-image: url('cover.png');
     }
 
     /* ──────────────────────────────────────────────────────────────────────
@@ -57,10 +65,10 @@
       padding: 16px 20px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: center;
     }
 
-    /* Track Metadata (Project · Episode) */
+    /* Track Metadata (Project · Episode 2) */
     .track-meta {
       font-size: 12px;
       font-weight: 500;
@@ -207,51 +215,31 @@
     }
 
     /* ──────────────────────────────────────────────────────────────────────
-       Bottom Row: “More Info” + Logo
+       Bottom Row: (removed “More Info”)
     ────────────────────────────────────────────────────────────────────── */
-    .bottom-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 12px;
-    }
-    .more-info {
-      font-size: 12px;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      text-decoration: none;
-      color: rgba(255, 255, 255, 0.9);
-      transition: opacity 0.2s;
-    }
-    .more-info:hover {
-      opacity: 0.75;
-    }
-    .logo {
-      width: 80px;
-      opacity: 0.8;
-    }
+    /* No bottom‐row styles needed since it’s removed */
   </style>
 </head>
 <body>
 
   <div class="player-card">
     <!-- ─────────────────────────────────
-         Left: Cover Art
+         Left: Cover Art with padding
     ───────────────────────────────── -->
-    <div
-      class="cover-art"
-      style="background-image: url('cover.png');"
-      aria-label="Cover art for Ascent"
-    ></div>
+    <div class="cover-container">
+      <div
+        class="cover-art"
+        aria-label="Cover art for Ascent"
+      ></div>
+    </div>
 
     <!-- ─────────────────────────────────
          Right: Track Info + Controls
     ───────────────────────────────── -->
     <div class="player-content">
-      <!-- Track Metadata -->
+      <!-- Track Metadata (Episode 2) -->
       <div>
-        <div class="track-meta">THE ELEVATION PROJECT • EPISODE 1</div>
+        <div class="track-meta">THE ELEVATION PROJECT • EPISODE 2</div>
         <div class="track-title">Ascent</div>
       </div>
 
@@ -289,9 +277,9 @@
             </svg>
           </button>
 
-          <!-- Speed Toggle (1x / 1.5x / 2x) -->
+          <!-- Speed Toggle (1× / 1.5× / 2×) -->
           <button class="btn-small" id="speedBtn" title="Playback Speed">
-            <span id="speedDisplay">1x</span>
+            <span id="speedDisplay">1×</span>
           </button>
 
           <!-- Skip Forward 30s -->
@@ -321,23 +309,10 @@
           </div>
         </div>
       </div>
-
-      <!-- Bottom Row: More Info + Transistor Logo -->
-      <div class="bottom-row">
-        <a href="#" class="more-info">More Info</a>
-        <!-- Transistor logo (if you have your own, replace this URL) -->
-        <img
-          src="https://raw.githubusercontent.com/transistorweb/logo/master/transistor-wordmark-white.svg"
-          alt="Transistor logo"
-          class="logo"
-        />
-      </div>
     </div>
   </div>
 
-  <!-- ──────────────────────────────────────────────────────────────────────
-     Hidden Native <audio> Element
-  ────────────────────────────────────────────────────────────────────── -->
+  <!-- Hidden Native <audio> Element (streams from Google Drive) -->
   <audio id="audioPlayer" preload="metadata">
     <source
       src="https://docs.google.com/uc?export=download&id=1vKUXUxTk1U7KiKIYRGdDwmv3PwTV4T7u"
@@ -346,9 +321,7 @@
     Your browser does not support HTML5 Audio.
   </audio>
 
-  <!-- ──────────────────────────────────────────────────────────────────────
-     JavaScript for Custom Controls
-  ────────────────────────────────────────────────────────────────────── -->
+  <!-- JavaScript for Custom Controls -->
   <script>
     // Grab references to DOM elements
     const audio = document.getElementById("audioPlayer");
@@ -436,7 +409,7 @@
     speedBtn.addEventListener("click", () => {
       speedIndex = (speedIndex + 1) % speeds.length;
       audio.playbackRate = speeds[speedIndex];
-      speedDisplay.textContent = speeds[speedIndex] + "x";
+      speedDisplay.textContent = speeds[speedIndex] + "×";
     });
 
     // 7. Volume control: show/hide slider on click
