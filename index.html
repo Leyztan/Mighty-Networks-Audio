@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ascent – Custom Audio Player</title>
+  <style>
+    /* ──────────────────────────────────────────────────────────────────────
+       Base Resets
+    ────────────────────────────────────────────────────────────────────── */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      background-color: #f5f5f5;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ──────────────────────────────────────────────────────────────────────
+       Player Card
+    ────────────────────────────────────────────────────────────────────── */
+    .player-card {
+      background-color: #8e44ad;           /* Purple background */
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: row;
+      max-width: 900px;
+      width: 100%;
+      min-height: 160px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* ──────────────────────────────────────────────────────────────────────
+       Cover Art on Left
+    ────────────────────────────────────────────────────────────────────── */
+    .cover-art {
+      flex: 0 0 160px;                      /* Fixed width for album art */
+      height: 160px;
+      background-size: cover;
+      background-position: center center;
+    }
+
+    /* ──────────────────────────────────────────────────────────────────────
+       Right Side: Info + Controls
+    ────────────────────────────────────────────────────────────────────── */
+    .player-content {
+      flex: 1;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Track Metadata (Project · Episode) */
+    .track-meta {
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    /* Track Title (“Ascent”) */
+    .track-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    /* ──────────────────────────────────────────────────────────────────────
+       Custom Player Controls
+    ────────────────────────────────────────────────────────────────────── */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* First row: Play/Pause + Progress Bar + Timestamp */
+    .controls-row-1 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Play/Pause button */
+    .btn-playpause {
+      width: 40px;
+      height: 40px;
+      border: none;
+      background-color: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .btn-playpause:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-playpause svg {
+      width: 18px;
+      height: 18px;
+      fill: #ffffff;
+    }
+
+    /* Progress Slider */
+    .progress-container {
+      flex: 1;
+      position: relative;
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background-color: #ffffff;
+      border-radius: 3px;
+      width: 0%;
+    }
+
+    /* Timestamp at far right */
+    .timestamp {
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.9;
+      min-width: 80px;
+      text-align: right;
+    }
+
+    /* Second row: Skip, Speed, Volume */
+    .controls-row-2 {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: 4px;
+    }
+
+    /* Buttons (Skip 10s, Speed toggle, Skip 30s, Volume) */
+    .btn-small {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      opacity: 0.85;
+    }
+    .btn-small:hover {
+      opacity: 1;
+    }
+    .btn-small svg,
+    .btn-small span {
+      width: 20px;
+      height: 20px;
+      fill: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      color: #ffffff;
+      user-select: none;
+    }
+
+    /* Volume Slider */
+    .volume-container {
+      position: relative;
+    }
+    .volume-slider {
+      position: absolute;
+      bottom: 30px;
+      right: 0;
+      width: 100px;
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      height: 4px;
+      outline: none;
+      display: none; /* Hidden until volume icon is clicked */
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: #ffffff;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .volume-container:hover .volume-slider,
+    .volume-slider.show {
+      display: block;
+    }
+
+    /* ──────────────────────────────────────────────────────────────────────
+       Bottom Row: “More Info” + Logo
+    ────────────────────────────────────────────────────────────────────── */
+    .bottom-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+    .more-info {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      color: rgba(255, 255, 255, 0.9);
+      transition: opacity 0.2s;
+    }
+    .more-info:hover {
+      opacity: 0.75;
+    }
+    .logo {
+      width: 80px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="player-card">
+    <!-- ─────────────────────────────────
+         Left: Cover Art
+    ───────────────────────────────── -->
+    <div
+      class="cover-art"
+      style="background-image: url('cover.png');"
+      aria-label="Cover art for Ascent"
+    ></div>
+
+    <!-- ─────────────────────────────────
+         Right: Track Info + Controls
+    ───────────────────────────────── -->
+    <div class="player-content">
+      <!-- Track Metadata -->
+      <div>
+        <div class="track-meta">THE ELEVATION PROJECT • EPISODE 1</div>
+        <div class="track-title">Ascent</div>
+      </div>
+
+      <!-- Custom Controls -->
+      <div class="controls">
+        <!-- Row 1: Play/Pause + Progress + Timestamp -->
+        <div class="controls-row-1">
+          <!-- Play/Pause Button -->
+          <button class="btn-playpause" id="playPauseBtn" aria-label="Play or Pause">
+            <!-- Default icon: “Play” triangle -->
+            <svg id="playIcon" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+            <!-- Hidden “Pause” icon: two vertical bars -->
+            <svg id="pauseIcon" viewBox="0 0 24 24" style="display: none;">
+              <path d="M6 19h4V5H6zm8-14v14h4V5z" />
+            </svg>
+          </button>
+
+          <!-- Progress Bar Container -->
+          <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+
+          <!-- Timestamp -->
+          <div class="timestamp" id="timestamp">00:00 | 00:00</div>
+        </div>
+
+        <!-- Row 2: Skip 10s, Speed, Skip 30s, Volume -->
+        <div class="controls-row-2">
+          <!-- Skip Back 10s -->
+          <button class="btn-small" id="skipBackBtn" title="Skip Back 10 seconds">
+            <svg viewBox="0 0 24 24">
+              <path d="M11 8L8 10.5v-3L2 12l6 4.5v-3L11 16V8zm1 0v8h2V8h-2zm8 0L19 10.5v-3l-6 4.5 6 4.5v-3L20 8z"/>
+            </svg>
+          </button>
+
+          <!-- Speed Toggle (1x / 1.5x / 2x) -->
+          <button class="btn-small" id="speedBtn" title="Playback Speed">
+            <span id="speedDisplay">1x</span>
+          </button>
+
+          <!-- Skip Forward 30s -->
+          <button class="btn-small" id="skipForwardBtn" title="Skip Forward 30 seconds">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 8l6 4.5v-3L16 12l-6 4.5v-3L4 16V8zm7 0v8h2V8h-2zm8 0l-6 4.5v-3L12 12l6 4.5v-3L20 8z"/>
+            </svg>
+          </button>
+
+          <!-- Volume Control -->
+          <div class="volume-container">
+            <button class="btn-small" id="volumeBtn" title="Volume">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0 1.77-1.02 3.29-2.5 4.03v-8.06c1.48 0.74 2.5 2.26 2.5 4.03z"/>
+              </svg>
+            </button>
+            <input
+              type="range"
+              id="volumeSlider"
+              class="volume-slider"
+              min="0"
+              max="1"
+              step="0.01"
+              value="1"
+              aria-label="Volume slider"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: More Info + Transistor Logo -->
+      <div class="bottom-row">
+        <a href="#" class="more-info">More Info</a>
+        <!-- Transistor logo (if you have your own, replace this URL) -->
+        <img
+          src="https://raw.githubusercontent.com/transistorweb/logo/master/transistor-wordmark-white.svg"
+          alt="Transistor logo"
+          class="logo"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────────────────
+     Hidden Native <audio> Element
+  ────────────────────────────────────────────────────────────────────── -->
+  <audio id="audioPlayer" preload="metadata">
+    <source
+      src="https://docs.google.com/uc?export=download&id=1vKUXUxTk1U7KiKIYRGdDwmv3PwTV4T7u"
+      type="audio/wav"
+    />
+    Your browser does not support HTML5 Audio.
+  </audio>
+
+  <!-- ──────────────────────────────────────────────────────────────────────
+     JavaScript for Custom Controls
+  ────────────────────────────────────────────────────────────────────── -->
+  <script>
+    // Grab references to DOM elements
+    const audio = document.getElementById("audioPlayer");
+    const playPauseBtn = document.getElementById("playPauseBtn");
+    const playIcon = document.getElementById("playIcon");
+    const pauseIcon = document.getElementById("pauseIcon");
+    const progressContainer = document.getElementById("progressContainer");
+    const progressBar = document.getElementById("progressBar");
+    const timestamp = document.getElementById("timestamp");
+    const skipBackBtn = document.getElementById("skipBackBtn");
+    const skipForwardBtn = document.getElementById("skipForwardBtn");
+    const speedBtn = document.getElementById("speedBtn");
+    const speedDisplay = document.getElementById("speedDisplay");
+    const volumeBtn = document.getElementById("volumeBtn");
+    const volumeSlider = document.getElementById("volumeSlider");
+
+    // 1. Play / Pause toggle
+    function togglePlayPause() {
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    }
+    playPauseBtn.addEventListener("click", togglePlayPause);
+    audio.addEventListener("play", () => {
+      playIcon.style.display = "none";
+      pauseIcon.style.display = "block";
+    });
+    audio.addEventListener("pause", () => {
+      pauseIcon.style.display = "none";
+      playIcon.style.display = "block";
+    });
+
+    // 2. Update progress bar & timestamp as audio plays
+    audio.addEventListener("timeupdate", () => {
+      const percent = (audio.currentTime / audio.duration) * 100;
+      progressBar.style.width = percent + "%";
+
+      // Format time as MM:SS or HH:MM:SS
+      const formatTime = (time) => {
+        if (isNaN(time)) return "00:00";
+        const hrs = Math.floor(time / 3600);
+        const mins = Math.floor((time % 3600) / 60);
+        const secs = Math.floor(time % 60);
+        if (hrs > 0) {
+          return (
+            String(hrs).padStart(2, "0") +
+            ":" +
+            String(mins).padStart(2, "0") +
+            ":" +
+            String(secs).padStart(2, "0")
+          );
+        } else {
+          return String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
+        }
+      };
+
+      timestamp.textContent =
+        formatTime(audio.currentTime) + " | " + formatTime(audio.duration);
+    });
+
+    // 3. Seek when user clicks on progress bar
+    progressContainer.addEventListener("click", (e) => {
+      const rect = progressContainer.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const width = rect.width;
+      const newTime = (clickX / width) * audio.duration;
+      audio.currentTime = newTime;
+    });
+
+    // 4. Skip Back 10 seconds
+    skipBackBtn.addEventListener("click", () => {
+      audio.currentTime = Math.max(0, audio.currentTime - 10);
+    });
+
+    // 5. Skip Forward 30 seconds
+    skipForwardBtn.addEventListener("click", () => {
+      audio.currentTime = Math.min(audio.duration, audio.currentTime + 30);
+    });
+
+    // 6. Cycle playback speed between 1×, 1.5×, 2×
+    const speeds = [1.0, 1.5, 2.0];
+    let speedIndex = 0;
+    speedBtn.addEventListener("click", () => {
+      speedIndex = (speedIndex + 1) % speeds.length;
+      audio.playbackRate = speeds[speedIndex];
+      speedDisplay.textContent = speeds[speedIndex] + "x";
+    });
+
+    // 7. Volume control: show/hide slider on click
+    volumeBtn.addEventListener("click", () => {
+      volumeSlider.classList.toggle("show");
+    });
+    volumeSlider.addEventListener("input", (e) => {
+      audio.volume = parseFloat(e.target.value);
+    });
+
+    // Initialize volume to 100%
+    audio.volume = 1.0;
+    volumeSlider.value = 1.0;
+
+    // 8. When audio ends, reset to Play icon
+    audio.addEventListener("ended", () => {
+      pauseIcon.style.display = "none";
+      playIcon.style.display = "block";
+      audio.currentTime = 0;
+      progressBar.style.width = "0%";
+    });
+  </script>
+</body>
+</html>
